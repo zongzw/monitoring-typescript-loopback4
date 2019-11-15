@@ -5,6 +5,10 @@ services:
     container_name: MONITOR
     ports:
      - 8085:3000
+    environment:
+      - INFLUXDB_URL=http://influxdb-server:8086
+    links:
+     - influxdb:influxdb-server
 
   influxdb:
     image: influxdb:latest

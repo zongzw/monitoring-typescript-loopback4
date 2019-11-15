@@ -2,7 +2,7 @@ import { getService } from '@loopback/service-proxy';
 import { inject, Provider } from '@loopback/core';
 import { RestapiDataSource } from '../datasources';
 
-export interface Rest {
+export interface RestService {
   // this is where you define the Node.js methods that will be
   // mapped to REST/SOAP/gRPC operations as stated in the datasource
   // json file.
@@ -14,14 +14,14 @@ export interface Rest {
   ): Promise<object>;
 }
 
-export class RestProvider implements Provider<Rest> {
+export class RestServiceProvider implements Provider<RestService> {
   constructor(
     // restapi must match the name property in the datasource json file
     @inject('datasources.restapi')
     protected dataSource: RestapiDataSource = new RestapiDataSource(),
   ) { }
 
-  value(): Promise<Rest> {
+  value(): Promise<RestService> {
     return getService(this.dataSource);
   }
 }
