@@ -1,5 +1,7 @@
-# Check out https://hub.docker.com/_/node to select a new base image
-FROM node:10-slim
+# build with:
+#   docker build . -t zongzw/monitoring-ts-lb4:latest
+
+FROM node:10
 
 # Set to a non-root built-in user `node`
 USER node
