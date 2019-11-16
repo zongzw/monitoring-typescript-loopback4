@@ -1,75 +1,44 @@
-import { repository } from "@loopback/repository";
-import { MetricRepository } from "../repositories";
-import { sleep } from "./wait.util";
-import { influxData } from "./string.util";
-import { inject, instantiateClass } from "@loopback/core";
-import { RestService } from "../services";
-import { GlobalVars } from "./vars.util";
+import uuid = require('uuid');
 
 export class LongRunProcesses {
-  private collectors: MetricsCollector[];
+  private procDict: { [key: string]: object } = {};
   constructor() { }
 
-  async start(): Promise<void> {
+  async register(task: PeriodicalTask): Promise<void> {
+    this.procDict[task.id] = {
+      class: task.constructor.name,
+      name: task.name,
+      interval: task.intervalInMillSec,
+    };
 
-    let mc = await instantiateClass(MetricsCollector, GlobalVars.globalApp, undefined, [10]);
-    while (true) {
-      await sleep(10).then(() => mc.collectFromMemcache());
+    let tmIntvl = task.intervalInMillSec;
+    let loopFunc = async () => {
+      if (!Object.keys(this.procDict).includes(task.id)) return;
+      return task.run()
+        .then(() => setTimeout(loopFunc, tmIntvl))
+        .catch(e => {
+          console.log(`collector run error: ${JSON.stringify(e)}`);
+          setTimeout(loopFunc, tmIntvl);
+        });
     }
-
+    loopFunc();
   }
 
-  async register(collector: MetricsCollector): Promise<void> {
-    this.collectors.push(collector);
+  async unregister(collector: PeriodicalTask) {
+    delete this.procDict[collector.id];
   }
 }
 
-class PeriodicalTask {
-  constructor(intervalInMillSec: number) { }
-  run() { }
-}
-
-class MetricsCollector extends PeriodicalTask {
+export abstract class PeriodicalTask {
+  private runTimes = 0;
+  public id = uuid();
+  // public description: string;
   constructor(
-    @repository(MetricRepository)
-    private metricRepo: MetricRepository,
-    @inject('services.RestService')
-    private restService: RestService,
-    intervalInMillSec: number
-  ) {
-    super(intervalInMillSec);
-  }
+    public intervalInMillSec: number,
+    public name: string,
+  ) { }
 
-  async collectFromMemcache() {
-    let metrics: string[] = [];
-
-    for await (let k of this.metricRepo.keys()) {
-      await this.metricRepo.get(k)
-        .then(async m => {
-          metrics.push(influxData(m));
-          return k;
-        })
-        .then(k => this.metricRepo.delete(k))
-        .catch(e => console.error(e));
-    }
-
-    let s = metrics.join('\n');
-    if (s === '') return;
-
-    await this.restService
-      .doRest(
-        'POST',
-        `${process.env.INFLUXDB_URL!}/write?db=mydb`,
-        {
-          "Content-Type": "application/octet-stream",
-          "Content-Range": `0-${s.length - 1}/${s.length}`,
-        },
-        Buffer.from(s)
-      )
-      .catch(e => console.error(e));
-  }
-
-  async collectFromSnmp() {
-
+  run(): Promise<void> {
+    throw new Error("Should not be called here.");
   }
 }

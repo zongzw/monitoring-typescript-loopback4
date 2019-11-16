@@ -3,7 +3,7 @@ import { RestBindings, post, RequestContext, param, requestBody, HttpErrors, get
 import { MetricRepository } from "../repositories";
 import uuid = require('uuid');
 import { repository } from "@loopback/repository";
-import { influxData } from "../utils/string.util";
+import { fmtInfluxData } from "../core/metrics.forwarder";
 
 type MetricData = {
   value: number;
@@ -50,7 +50,7 @@ export class MetricsController {
     let rlt: string[] = [];
     for await (let k of this.metricRepo.keys()) {
       await this.metricRepo.get(k).then(m => {
-        rlt.push(influxData(m));
+        rlt.push(fmtInfluxData(m));
       })
     }
 

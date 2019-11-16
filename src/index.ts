@@ -1,7 +1,8 @@
 import { MonitoringApplication } from './application';
 import { ApplicationConfig, instantiateClass } from '@loopback/core';
-import { LongRunProcesses } from './utils';
+import { LongRunProcesses, sleep } from './utils';
 import { GlobalVars } from './utils/vars.util';
+import { MetricsForwarder } from './core/metrics.forwarder';
 
 export { MonitoringApplication };
 
@@ -17,7 +18,9 @@ export async function main(options: ApplicationConfig = {}) {
   console.log(`Try ${url}/ping`);
 
   let lrp = await instantiateClass(LongRunProcesses, app);
-  lrp.start();
+  let mc = await instantiateClass(MetricsForwarder, GlobalVars.globalApp, undefined, [1000, 'Test LRP']);
+  lrp.register(mc);
 
+  // sleep(30000).then(() => lrp.unregister(mc));
   return app;
 }
