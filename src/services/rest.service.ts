@@ -1,6 +1,6 @@
-import { getService } from '@loopback/service-proxy';
-import { inject, Provider } from '@loopback/core';
-import { RestapiDataSource } from '../datasources';
+import {getService} from '@loopback/service-proxy';
+import {inject, Provider} from '@loopback/core';
+import {RestapiDataSource} from '../datasources';
 
 export interface RestService {
   // this is where you define the Node.js methods that will be
@@ -19,7 +19,7 @@ export class RestServiceProvider implements Provider<RestService> {
     // restapi must match the name property in the datasource json file
     @inject('datasources.restapi')
     protected dataSource: RestapiDataSource = new RestapiDataSource(),
-  ) { }
+  ) {}
 
   value(): Promise<RestService> {
     return getService(this.dataSource);

@@ -1,8 +1,7 @@
-import { Entity, model, property } from '@loopback/repository';
+import {Entity, model, property} from '@loopback/repository';
 
 @model()
 export class Metric extends Entity {
-
   @property({
     type: 'string',
     id: true,
@@ -32,7 +31,6 @@ export class Metric extends Entity {
     required: true,
   })
   timestamp: number;
-
 
   constructor(data?: Partial<Metric>) {
     super(data);

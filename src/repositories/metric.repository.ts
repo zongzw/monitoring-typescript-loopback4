@@ -3,12 +3,8 @@ import {Metric} from '../models';
 import {MemcacheDataSource} from '../datasources';
 import {inject} from '@loopback/core';
 
-export class MetricRepository extends DefaultKeyValueRepository<
-  Metric
-> {
-  constructor(
-    @inject('datasources.memcache') dataSource: MemcacheDataSource,
-  ) {
+export class MetricRepository extends DefaultKeyValueRepository<Metric> {
+  constructor(@inject('datasources.memcache') dataSource: MemcacheDataSource) {
     super(Metric, dataSource);
   }
 }

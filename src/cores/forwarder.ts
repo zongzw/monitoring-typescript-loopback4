@@ -1,10 +1,9 @@
-
-import { PeriodicalTask } from '../utils/lrp.util';
-import { repository } from '@loopback/repository';
-import { MetricRepository } from '../repositories';
-import { inject } from '@loopback/core';
-import { RestService } from '../services';
-import { Metric } from "../models";
+import {PeriodicalTask} from '../utils/lrp.util';
+import {repository} from '@loopback/repository';
+import {MetricRepository} from '../repositories';
+import {inject} from '@loopback/core';
+import {RestService} from '../services';
+import {Metric} from '../models';
 
 export function fmtInfluxData(m: Metric) {
   return `${m.target},${m.tags} value=${m.value} ${m.timestamp}`;
@@ -26,7 +25,8 @@ export class MetricsForwarder extends PeriodicalTask {
     let metrics: string[] = [];
 
     for await (let k of this.metricRepo.keys()) {
-      await this.metricRepo.get(k)
+      await this.metricRepo
+        .get(k)
         .then(async m => {
           metrics.push(fmtInfluxData(m));
           return k;
@@ -35,7 +35,7 @@ export class MetricsForwarder extends PeriodicalTask {
         .catch(e => console.error(e));
     }
 
-    console.log(`length of metrics: ${metrics.length}`);
+    // console.log(`length of metrics: ${metrics.length}`);
     if (metrics.length > 0) {
       let s = metrics.join('\n');
       await this.restService
@@ -43,10 +43,10 @@ export class MetricsForwarder extends PeriodicalTask {
           'POST',
           `${process.env.INFLUXDB_URL!}/write?db=mydb`,
           {
-            "Content-Type": "application/octet-stream",
-            "Content-Range": `0-${s.length - 1}/${s.length}`,
+            'Content-Type': 'application/octet-stream',
+            'Content-Range': `0-${s.length - 1}/${s.length}`,
           },
-          Buffer.from(s)
+          Buffer.from(s),
         )
         .catch(e => console.error(e));
     }
