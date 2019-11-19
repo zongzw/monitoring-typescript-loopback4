@@ -13,7 +13,9 @@ import uuid = require('uuid');
 import {repository} from '@loopback/repository';
 import {fmtInfluxData} from '../cores/forwarder';
 import {AllTypes} from '../utils/vars.util';
-import {SnmpGet, SnmpFactory} from '../cores/collector.base';
+import {SnmpCollectorFactory} from '../cores/collector.snmp/snmp.collector';
+import {SnmpGet, SnmpGetBulk} from '../cores/collector.snmp/snmp.actions';
+import {OIDMeta} from '../cores/vars.net-snmp';
 
 type MetricData = {
   value: number;
@@ -80,8 +82,28 @@ export class MetricsController {
 
     let snmp = require('net-snmp');
     let session = snmp.createSession(hostname, community);
-    let snmpGet = new SnmpGet(session);
-    return snmpGet.do([oid]).then(rlt => {
+    let sa = new SnmpGet(session);
+    return sa.do([oid]).then(rlt => {
+      session.close();
+      return rlt;
+    });
+  }
+
+  @get('/snmp/getbulk')
+  async snmpGetBulk(
+    @param.query.string('hostname')
+    hostname: string,
+    @param.query.string('community')
+    community: string,
+    @param.query.string('oid')
+    oid: string,
+  ): Promise<object> {
+    let rlt: {[key: string]: AllTypes} = {};
+
+    let snmp = require('net-snmp');
+    let session = snmp.createSession(hostname, community);
+    let sa = new SnmpGetBulk(session);
+    return sa.do([oid]).then(rlt => {
       session.close();
       return rlt;
     });
@@ -95,10 +117,10 @@ export class MetricsController {
       community: string;
       version: string;
       interval: number;
-      oids: string[];
+      oids: {[key: string]: OIDMeta};
     },
   ) {
-    let sf = SnmpFactory.getInstance({
+    let sf = SnmpCollectorFactory.getInstance({
       target: body.target,
       community: body.community,
       version: body.version,

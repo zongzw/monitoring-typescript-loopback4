@@ -6,7 +6,10 @@ import {RestService} from '../services';
 import {Metric} from '../models';
 
 export function fmtInfluxData(m: Metric) {
-  return `${m.target},${m.tags} value=${m.value} ${m.timestamp}`;
+  let tt: string = `${m.target},${m.tags}`;
+  if (!m.tags || m.tags === '') tt = m.target;
+
+  return `${tt} value=${m.value} ${m.timestamp}`;
 }
 
 export class MetricsForwarder extends PeriodicalTask {

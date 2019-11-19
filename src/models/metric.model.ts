@@ -1,4 +1,5 @@
 import {Entity, model, property} from '@loopback/repository';
+import {AllTypes} from '../utils/vars.util';
 
 @model()
 export class Metric extends Entity {
