@@ -14,8 +14,8 @@ import {repository} from '@loopback/repository';
 import {fmtInfluxData} from '../cores/forwarder';
 import {AllTypes} from '../utils/vars.util';
 import {SnmpCollectorFactory} from '../cores/collector.snmp/snmp.collector';
-import {SnmpGet, SnmpGetBulk} from '../cores/collector.snmp/snmp.actions';
-import {OIDMeta} from '../cores/vars.net-snmp';
+import {SnmpGet, SnmpTableColumns} from '../cores/collector.snmp/snmp.actions';
+import {OIDWithMeta} from '../cores/vars.net-snmp';
 
 type MetricData = {
   value: number;
@@ -83,41 +83,65 @@ export class MetricsController {
     let snmp = require('net-snmp');
     let session = snmp.createSession(hostname, community);
     let sa = new SnmpGet(session);
-    return sa.do([oid]).then(rlt => {
-      session.close();
-      return rlt;
-    });
+    return sa
+      .do({[oid]: {alias: 'raw', type: 'oid'}})
+      .then(rlt => {
+        session.close();
+        return rlt;
+      })
+      .catch(err => {
+        throw new HttpErrors.BadRequest(err.message);
+      });
   }
 
-  @get('/snmp/getbulk')
-  async snmpGetBulk(
+  @get('/snmp/tableColumns')
+  async snmpTableColumns(
     @param.query.string('hostname')
     hostname: string,
     @param.query.string('community')
     community: string,
     @param.query.string('oid')
     oid: string,
+    @param.query.string('columns')
+    columns: string,
   ): Promise<object> {
     let rlt: {[key: string]: AllTypes} = {};
+    let c = columns.split(',');
+    let cs: {[key: string]: string} = {};
+    try {
+      for (let n of c) {
+        let a = Number(n).toString();
+        if (a !== n)
+          throw new Error(`invalid parameter: '${n}' in '${columns}'`);
+        cs[n] = n;
+      }
+    } catch (error) {
+      throw new HttpErrors.BadRequest(error.message);
+    }
 
     let snmp = require('net-snmp');
     let session = snmp.createSession(hostname, community);
-    let sa = new SnmpGetBulk(session);
-    return sa.do([oid]).then(rlt => {
-      session.close();
-      return rlt;
-    });
+    let sa = new SnmpTableColumns(session);
+    return sa
+      .do({[oid]: {alias: 'raw', type: 'table', columns: cs}})
+      .then(rlt => {
+        session.close();
+        return rlt;
+      })
+      .catch(err => {
+        throw new HttpErrors.BadRequest(err.message);
+      });
   }
 
   @post('/collectors/snmpget')
-  async addCollectors(
+  async addSnmpGetCollectors(
     @requestBody()
     body: {
       target: string;
       community: string;
       version: string;
       interval: number;
-      oids: {[key: string]: OIDMeta};
+      oids: OIDWithMeta;
     },
   ) {
     let sf = SnmpCollectorFactory.getInstance({
@@ -127,5 +151,25 @@ export class MetricsController {
     });
 
     sf.startCollector(SnmpGet, body.oids, body.interval);
+  }
+
+  @post('/collectors/snmptable')
+  async addSnmpTableCollectors(
+    @requestBody()
+    body: {
+      target: string;
+      community: string;
+      version: string;
+      interval: number;
+      oids: OIDWithMeta;
+    },
+  ) {
+    let sf = SnmpCollectorFactory.getInstance({
+      target: body.target,
+      community: body.community,
+      version: body.version,
+    });
+
+    sf.startCollector(SnmpTableColumns, body.oids, body.interval);
   }
 }

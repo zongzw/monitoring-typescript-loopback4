@@ -38,7 +38,7 @@ export class MetricsForwarder extends PeriodicalTask {
         .catch(e => console.error(e));
     }
 
-    // console.log(`length of metrics: ${metrics.length}`);
+    console.log(`length of metrics: ${metrics.length}`);
     if (metrics.length > 0) {
       let s = metrics.join('\n');
       await this.restService

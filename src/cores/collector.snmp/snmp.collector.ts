@@ -1,11 +1,19 @@
 import {GlobalVars, AllTypes} from '../../utils/vars.util';
-import {SnmpSession, snmp, SnmpTuple, OIDMeta, Varbind} from '../vars.net-snmp';
+import {
+  SnmpSession,
+  snmp,
+  SnmpTuple,
+  OIDMetaData,
+  Varbind,
+  OIDWithMeta,
+} from '../vars.net-snmp';
 import {Constructor, instantiateClass} from '@loopback/core';
 import {MetricsCollector} from '../collector.base';
 import {repository} from '@loopback/repository';
 import {MetricRepository} from '../../repositories';
 import {SnmpAction} from './snmp.actions';
 import uuid = require('uuid');
+import {DH_NOT_SUITABLE_GENERATOR} from 'constants';
 
 export class SnmpCollectorFactory {
   private session: SnmpSession;
@@ -51,7 +59,7 @@ export class SnmpCollectorFactory {
 
   public async startCollector(
     ctor: Constructor<SnmpAction>,
-    oids: {[key: string]: OIDMeta},
+    oids: OIDWithMeta,
     interval: number,
   ) {
     let sa = new ctor(this.session);
@@ -71,7 +79,7 @@ export class SnmpCollector extends MetricsCollector {
     @repository(MetricRepository)
     private metricRepo: MetricRepository,
     private action: SnmpAction,
-    private oids: {[key: string]: OIDMeta},
+    private oids: OIDWithMeta,
     interval: number,
   ) {
     super(interval, action.constructor.name);
@@ -82,24 +90,26 @@ export class SnmpCollector extends MetricsCollector {
       `SnmpCollector ${this.action.constructor.name} collecting: ${this.oids}`,
     );
     let curDateNanoSec = new Date().getTime() * 1000000;
-    this.action.do(Object.keys(this.oids)).then(rlt => {
+    this.action.do(this.oids).then(rlt => {
       console.log(JSON.stringify(rlt));
-      let getTags = (om: OIDMeta) => {
-        if (!om.tags) return '';
-        let ts: string[] = [];
-        for (let k of Object.keys(om.tags)) {
-          ts.push(`${k}=${om.tags[k]}`);
-        }
-        return ts.join(',');
-      };
+      // let getTags = (om: OIDMetaData) => {
+      //   let ts: string[] = [];
+      //   ts.push(`alias=${om.alias}`);
+      //   if (!om.tags) return ts.join(',');
+
+      //   for (let k of Object.keys(om.tags)) {
+      //     ts.push(`${k}=${om.tags[k]}`);
+      //   }
+      //   return ts.join(',');
+      // };
 
       for (let mk of Object.keys(rlt)) {
         let id = uuid();
         let m = {
           id: id,
-          target: this.oids[mk].alias,
+          target: rlt[mk].measure!,
           timestamp: curDateNanoSec,
-          tags: getTags(this.oids[mk]),
+          tags: rlt[mk].tags,
           value: solveVarbindValue(rlt[mk]),
         };
 
