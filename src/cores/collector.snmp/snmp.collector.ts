@@ -46,7 +46,7 @@ export class SnmpCollectorFactory {
     };
   }
 
-  public static getInstance(snmpTuple: SnmpTuple) {
+  public static getInstance(snmpTuple: SnmpTuple): SnmpCollectorFactory {
     let fid = this.factoryId(snmpTuple);
     if (!SnmpCollectorFactory._instance[fid])
       SnmpCollectorFactory._instance[fid] = new SnmpCollectorFactory(snmpTuple);
@@ -85,27 +85,45 @@ export class SnmpCollector extends MetricsCollector {
     super(interval, action.constructor.name);
   }
 
+  taskMeta(): object {
+    return {
+      action: this.action.constructor.name,
+      oid: this.oids,
+    };
+  }
+
   async run(): Promise<void> {
     console.log(
-      `SnmpCollector ${this.action.constructor.name} collecting: ${this.oids}`,
+      `SnmpCollector ${this.action.constructor.name} collecting: ${Object.keys(
+        this.oids,
+      )}`,
     );
     let curDateNanoSec = new Date().getTime() * 1000000;
-    this.action.do(this.oids).then(metrics => {
-      console.log(JSON.stringify(metrics));
+    this.action.do(this.oids).then(
+      metrics => {
+        console.log(JSON.stringify(metrics));
 
-      for (let mk of Object.keys(metrics)) {
-        let id = uuid();
-        let m = {
-          id: id,
-          target: metrics[mk].measure!,
-          timestamp: metrics[mk].timestamp,
-          tags: metrics[mk].tags,
-          value: resolveVarbindValue(metrics[mk]),
-        };
+        for (let mk of Object.keys(metrics)) {
+          let id = uuid();
+          let m = {
+            id: id,
+            target: metrics[mk].measure!,
+            timestamp: metrics[mk].timestamp,
+            tags: metrics[mk].tags,
+            value: resolveVarbindValue(metrics[mk]),
+          };
 
-        this.metricRepo.set(id, m);
-      }
-    });
+          this.metricRepo.set(id, m);
+        }
+      },
+      err => {
+        console.error(
+          `Failed to fetch values for ${Object.keys(this.oids)}, err msg: ${
+            err.message
+          }`,
+        );
+      },
+    );
   }
 }
 

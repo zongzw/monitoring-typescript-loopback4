@@ -24,6 +24,13 @@ export class MetricsForwarder extends PeriodicalTask {
     super(intervalInMillSec, name);
   }
 
+  taskMeta(): object {
+    return {
+      class: this.constructor.name,
+      interval: this.intervalInMillSec,
+    };
+  }
+
   async run() {
     let metrics: string[] = [];
 

@@ -9,6 +9,7 @@ export class LongRunProcesses {
       class: task.constructor.name,
       name: task.name,
       interval: task.intervalInMillSec,
+      task: task.taskMeta(),
     };
 
     let tmIntvl = task.intervalInMillSec;
@@ -28,6 +29,10 @@ export class LongRunProcesses {
   async unregister(collector: PeriodicalTask) {
     delete this.procDict[collector.id];
   }
+
+  processes(): object {
+    return this.procDict;
+  }
 }
 
 export abstract class PeriodicalTask {
@@ -37,6 +42,12 @@ export abstract class PeriodicalTask {
   constructor(public intervalInMillSec: number, public name: string) {}
 
   run(): Promise<void> {
-    throw new Error('Should not be called here.');
+    throw new Error(`${this.constructor.name}'s run should not be called.`);
+  }
+
+  taskMeta(): object {
+    throw new Error(
+      `${this.constructor.name}'s taskMeta should not be called.`,
+    );
   }
 }

@@ -12,7 +12,7 @@ import {MetricRepository} from '../repositories';
 import uuid = require('uuid');
 import {repository} from '@loopback/repository';
 import {fmtInfluxData} from '../cores/forwarder';
-import {AllTypes} from '../utils/vars.util';
+import {AllTypes, GlobalVars} from '../utils/vars.util';
 import {SnmpCollectorFactory} from '../cores/collector.snmp/snmp.collector';
 import {SnmpGet, SnmpTableColumns} from '../cores/collector.snmp/snmp.actions';
 import {OIDWithMeta} from '../cores/vars.net-snmp';
@@ -171,5 +171,10 @@ export class MetricsController {
     });
 
     sf.startCollector(SnmpTableColumns, body.oids, body.interval);
+  }
+
+  @get('/collectors')
+  async registeredCollectors(): Promise<object> {
+    return GlobalVars.longRunProcs.processes();
   }
 }
