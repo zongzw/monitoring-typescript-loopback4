@@ -90,27 +90,17 @@ export class SnmpCollector extends MetricsCollector {
       `SnmpCollector ${this.action.constructor.name} collecting: ${this.oids}`,
     );
     let curDateNanoSec = new Date().getTime() * 1000000;
-    this.action.do(this.oids).then(rlt => {
-      console.log(JSON.stringify(rlt));
-      // let getTags = (om: OIDMetaData) => {
-      //   let ts: string[] = [];
-      //   ts.push(`alias=${om.alias}`);
-      //   if (!om.tags) return ts.join(',');
+    this.action.do(this.oids).then(metrics => {
+      console.log(JSON.stringify(metrics));
 
-      //   for (let k of Object.keys(om.tags)) {
-      //     ts.push(`${k}=${om.tags[k]}`);
-      //   }
-      //   return ts.join(',');
-      // };
-
-      for (let mk of Object.keys(rlt)) {
+      for (let mk of Object.keys(metrics)) {
         let id = uuid();
         let m = {
           id: id,
-          target: rlt[mk].measure!,
-          timestamp: curDateNanoSec,
-          tags: rlt[mk].tags,
-          value: solveVarbindValue(rlt[mk]),
+          target: metrics[mk].measure!,
+          timestamp: metrics[mk].timestamp,
+          tags: metrics[mk].tags,
+          value: resolveVarbindValue(metrics[mk]),
         };
 
         this.metricRepo.set(id, m);
@@ -119,7 +109,7 @@ export class SnmpCollector extends MetricsCollector {
   }
 }
 
-function solveVarbindValue(v: Varbind): number {
+function resolveVarbindValue(v: Varbind): number {
   switch (snmp.ObjectType[v.type]) {
     case 'Integer':
     case 'Counter':
